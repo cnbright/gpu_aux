@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+build/
+*.egg-info/
+
+# Never publish reference/vendor binaries or native build artifacts.
+OperateCardLib.dll
+*.dll
+*.lib
+*.pdb
+*.exp
+
+# Reverse-engineering scratch output is local-only.
+reverse_*.txt
+*.disasm
