@@ -137,6 +137,13 @@ obtains the function used by all four operations. Error paths identify it as:
 NvAPI_Disp_DpAuxChannelControl(displayId, request, 0x68)
 ```
 
+The `nvapi_QueryInterface` interface ID was recovered from the hashed sample's
+NVAPI wrapper at RVA `0x18570`. The wrapper loads:
+
+```c
+nvapi_QueryInterface(0x8EB56969)
+```
+
 No separate NVIDIA I2C API is used by the reference DLL. Native DPCD and
 I2C-over-AUX are encoded in the same `0x68` request.
 
@@ -147,7 +154,7 @@ typedef struct NvDpAuxRequest_Recovered {
     uint32_t version;       // +0x00 = 0x00010028
     uint32_t display_id;    // +0x04
     uint32_t command;       // +0x08
-    uint32_t address;       // +0x0C: DPCD address or I2C device address
+    uint32_t address;       // +0x0C: DPCD address or 8-bit I2C write address
     uint8_t  data[16];      // +0x10
     uint32_t length_field;  // +0x20, usually count - 1 for reads/DPCD
     uint32_t result;        // +0x24: 0 success, 1 defer, 2 not found, 0xFF timeout
@@ -170,7 +177,9 @@ DPCD is limited to 16 bytes per request. For I2C reads the implementation
 sends command `5` with the register offset, then reads in chunks of at most 16
 bytes using command `6` for intermediate chunks and command `3` for the final
 chunk. I2C writes use command `2`, placing the register offset before payload
-in `data`.
+in `data`. On the RTX 4070 SUPER validation system, the I2C `address` field
+must be the 8-bit write address (`dev7 << 1`); using the 7-bit address returns
+NVAPI error `-1`.
 
 The error/result handling is also explicit in the disassembly:
 
@@ -188,13 +197,14 @@ sizes. These come directly from x64 disassembly of the hashed sample.
 
 The reconstructed C structures are documentation aids, not vendor headers.
 Reserved fields, official enum names, and the complete `IDPControl2` ABI remain
-unconfirmed. The NVIDIA function is private NVAPI and obtained by interface ID;
-the numeric QueryInterface ID still needs separate recovery before a standalone
-NVIDIA implementation can resolve it without an NVAPI header/library.
+unconfirmed. The NVIDIA function is an undocumented NVAPI interface obtained by
+the recovered interface ID `0x8EB56969`; it is not declared in the current
+public `nvapi.h`, so treat the request layout as recovered rather than stable
+vendor ABI.
 
 ## Project dependency boundary
 
-The current `amd_aux` Python package directly loads the system AMD ADL DLL via
-`ctypes`. It does not load, import, redistribute, or call `OperateCardLib.dll`.
-The Intel and NVIDIA information above is retained only as implementation
-research for future direct Python backends.
+The current `amd_aux` Python package directly loads the system AMD ADL DLL or
+NVIDIA NVAPI DLL via `ctypes`. It does not load, import, redistribute, or call
+`OperateCardLib.dll`. The Intel information above is retained only as
+implementation research for a future direct Python backend.

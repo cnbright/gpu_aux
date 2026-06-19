@@ -1,7 +1,8 @@
-"""Direct Python access to AMD DisplayPort AUX functions."""
+"""Direct Python access to DisplayPort AUX functions."""
 
 from .adl import Adapter, AmdAux, AuxError, Port
 from .api import AuxPort, GpuPorts, enumerate_gpus_and_ports
+from .nvapi import NvidiaAux
 
 __all__ = [
     "Adapter",
@@ -9,6 +10,7 @@ __all__ = [
     "AuxError",
     "AuxPort",
     "GpuPorts",
+    "NvidiaAux",
     "Port",
     "enumerate_gpus_and_ports",
 ]

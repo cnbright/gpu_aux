@@ -92,6 +92,7 @@ class Adapter:
     bus: int
     device: int
     function: int
+    backend: str = "AMD"
 
 
 @dataclass(frozen=True)
@@ -106,10 +107,11 @@ class Port:
     output_type: int
     connector: int
     connected: bool
+    backend: str = "adl"
 
     @property
     def identity(self) -> str:
-        return f"adl:{self.adapter.index}:{self.logical_display_index}"
+        return f"{self.backend}:{self.adapter.index}:{self.logical_display_index}"
 
     @property
     def kind(self) -> str:

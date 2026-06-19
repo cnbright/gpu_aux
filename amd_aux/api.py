@@ -6,31 +6,51 @@ import threading
 from dataclasses import dataclass
 
 from .adl import Adapter, AmdAux, AuxError, Port
+from .nvapi import NvidiaAux
 
 
 _context_lock = threading.RLock()
-_shared_aux = None
-_context_users = 0
+_contexts = {}
 
 
-def _acquire_aux() -> AmdAux:
-    global _shared_aux, _context_users
+def _normalize_backend(backend: str) -> str:
+    if not isinstance(backend, str):
+        raise TypeError("backend must be 'AMD' or 'NVIDIA'")
+    normalized = backend.strip().upper()
+    if normalized in {"AMD", "NVIDIA"}:
+        return normalized
+    raise ValueError("backend must be 'AMD' or 'NVIDIA'")
+
+
+def _create_aux(backend: str):
+    if backend == "AMD":
+        return AmdAux()
+    if backend == "NVIDIA":
+        return NvidiaAux()
+    raise ValueError("backend must be 'AMD' or 'NVIDIA'")
+
+
+def _acquire_aux(backend: str):
+    normalized_backend = _normalize_backend(backend)
     with _context_lock:
-        if _shared_aux is None:
-            _shared_aux = AmdAux()
-        _context_users += 1
-        return _shared_aux
+        context = _contexts.get(normalized_backend)
+        if context is None:
+            context = [_create_aux(normalized_backend), 0]
+            _contexts[normalized_backend] = context
+        context[1] += 1
+        return context[0]
 
 
-def _release_aux(aux: AmdAux) -> None:
-    global _shared_aux, _context_users
+def _release_aux(backend: str, aux) -> None:
+    normalized_backend = _normalize_backend(backend)
     with _context_lock:
-        if aux is not _shared_aux or _context_users <= 0:
+        context = _contexts.get(normalized_backend)
+        if context is None or aux is not context[0] or context[1] <= 0:
             return
-        _context_users -= 1
-        if _context_users == 0:
+        context[1] -= 1
+        if context[1] == 0:
             aux.close()
-            _shared_aux = None
+            del _contexts[normalized_backend]
 
 
 @dataclass(frozen=True)
@@ -42,10 +62,11 @@ class GpuPorts:
     ports: tuple[Port, ...]
 
 
-def enumerate_gpus_and_ports() -> list[GpuPorts]:
-    """Return all physical AMD GPUs and their connected DP/eDP ports."""
+def enumerate_gpus_and_ports(backend: str) -> list[GpuPorts]:
+    """Return physical GPUs and their connected DP/eDP ports for one backend."""
 
-    aux = _acquire_aux()
+    normalized_backend = _normalize_backend(backend)
+    aux = _acquire_aux(normalized_backend)
     try:
         result = []
         for gpu_index, adapter in enumerate(aux.adapters()):
@@ -58,31 +79,33 @@ def enumerate_gpus_and_ports() -> list[GpuPorts]:
             )
         return result
     finally:
-        _release_aux(aux)
+        _release_aux(normalized_backend, aux)
 
 
 class AuxPort:
-    """An opened AMD DP/eDP AUX endpoint.
+    """An opened DP/eDP AUX endpoint.
 
     ``index`` is counted within ports of the requested kind on one physical
-    GPU. For example, ``AuxPort("DP", index=1)`` selects the second external
-    DP port, regardless of where an eDP port appears in the ADL display table.
+    GPU. For example, ``AuxPort("DP", index=1, backend="NVIDIA")`` selects the
+    second external DP port on the first NVIDIA GPU.
     """
 
-    def __init__(self, kind: str, index: int = 0, gpu_index: int = 0) -> None:
+    def __init__(self, kind: str, index: int = 0, gpu_index: int = 0, *, backend: str) -> None:
         self._aux = None
         self._port = None
 
+        normalized_backend = _normalize_backend(backend)
         normalized_kind = self._normalize_kind(kind)
         if index < 0 or gpu_index < 0:
             raise ValueError("index and gpu_index must not be negative")
 
-        aux = _acquire_aux()
+        aux = _acquire_aux(normalized_backend)
         try:
             adapters = aux.adapters()
             if gpu_index >= len(adapters):
                 raise AuxError(
-                    f"GPU index {gpu_index} is unavailable; found {len(adapters)} AMD GPU(s)"
+                    f"GPU index {gpu_index} is unavailable for {normalized_backend}; "
+                    f"found {len(adapters)} GPU(s)"
                 )
             adapter = adapters[gpu_index]
             matching_ports = [
@@ -95,10 +118,11 @@ class AuxPort:
                 )
             self._aux = aux
             self._port = matching_ports[index]
+            self._backend = normalized_backend
             self._gpu_index = gpu_index
             self._kind_index = index
         except Exception:
-            _release_aux(aux)
+            _release_aux(normalized_backend, aux)
             raise
 
     @staticmethod
@@ -119,7 +143,7 @@ class AuxPort:
 
     @property
     def info(self) -> Port:
-        """Return the immutable ADL port information."""
+        """Return the immutable port information."""
 
         return self._require_open()[1]
 
@@ -135,6 +159,11 @@ class AuxPort:
     def gpu_index(self) -> int:
         self._require_open()
         return self._gpu_index
+
+    @property
+    def backend(self) -> str:
+        self._require_open()
+        return self._backend
 
     @property
     def index(self) -> int:
@@ -159,7 +188,7 @@ class AuxPort:
 
     def close(self) -> None:
         if self._aux is not None:
-            _release_aux(self._aux)
+            _release_aux(self._backend, self._aux)
             self._aux = None
             self._port = None
 

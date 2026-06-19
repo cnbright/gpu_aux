@@ -34,12 +34,16 @@ def test_port(port: AuxPort) -> None:
 
 
 def main() -> int:
-    for gpu in enumerate_gpus_and_ports():
+    if len(sys.argv) != 2:
+        print("usage: hardware_aux_test.py AMD|NVIDIA")
+        return 2
+    backend = sys.argv[1]
+    for gpu in enumerate_gpus_and_ports(backend):
         kind_indexes = defaultdict(int)
         for info in gpu.ports:
             kind_index = kind_indexes[info.kind]
             kind_indexes[info.kind] += 1
-            with AuxPort(info.kind, kind_index, gpu.gpu_index) as port:
+            with AuxPort(info.kind, kind_index, gpu.gpu_index, backend=backend) as port:
                 test_port(port)
     return 0
 

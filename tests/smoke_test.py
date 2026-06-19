@@ -8,12 +8,16 @@ from amd_aux import AuxError, AuxPort, enumerate_gpus_and_ports
 
 
 def main() -> int:
-    inventory = enumerate_gpus_and_ports()
-    print(f"AMD GPUs: {len(inventory)}")
+    if len(sys.argv) != 2:
+        print("usage: smoke_test.py AMD|NVIDIA")
+        return 2
+    backend = sys.argv[1]
+    inventory = enumerate_gpus_and_ports(backend)
+    print(f"{backend.upper()} GPUs: {len(inventory)}")
 
     for gpu in inventory:
         adapter = gpu.adapter
-        print(f"GPU {gpu.gpu_index}: {adapter.name} ({adapter.display_name})")
+        print(f"GPU {gpu.gpu_index}: {adapter.backend} {adapter.name} ({adapter.display_name})")
         kind_indexes = defaultdict(int)
         for info in gpu.ports:
             kind_index = kind_indexes[info.kind]
@@ -24,7 +28,7 @@ def main() -> int:
                 f"output={info.output_type}, connector={info.connector}"
             )
             try:
-                with AuxPort(info.kind, kind_index, gpu.gpu_index) as port:
+                with AuxPort(info.kind, kind_index, gpu.gpu_index, backend=backend) as port:
                     data = port.read_dpcd(0x00000, 16)
                 print(f"    DPCD[0x00000:16] = {data.hex(' ').upper()}")
             except AuxError as error:
