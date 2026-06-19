@@ -1,4 +1,4 @@
-# amd_aux
+# gpu_aux
 
 Windows x64 纯 Python GPU AUX 包。Python 使用 `ctypes` 直接加载系统 AMD
 `atiadlxx.dll` 或 NVIDIA `nvapi64.dll`，不包含或依赖 C/C++ 中间 DLL，也不依赖
@@ -16,21 +16,21 @@ Windows x64 纯 Python GPU AUX 包。Python 使用 `ctypes` 直接加载系统 A
 直接构造一个端口对象：
 
 ```python
-from amd_aux import AuxPort
+from gpu_aux import AuxPort
 
 with AuxPort("DP", index=0, gpu_index=0, backend="NVIDIA") as dp:
     print(dp.read_dpcd(0x00000, 16).hex(" "))
     edid = dp.i2c_read(0x50, 0, 128)
 ```
 
-使用模块级函数列出全部 GPU 和端口：
+GPU 与端口枚举是两个独立的模块级函数，不需要先创建 `AuxPort`：
 
 ```python
-from amd_aux import enumerate_gpus_and_ports
+from gpu_aux import enumerate_gpus, enumerate_ports
 
-for gpu in enumerate_gpus_and_ports("NVIDIA"):
-    print(gpu.gpu_index, gpu.adapter.backend, gpu.adapter.name)
-    for port in gpu.ports:
+for gpu_index, gpu in enumerate(enumerate_gpus("NVIDIA")):
+    print(gpu_index, gpu.backend, gpu.name)
+    for port in enumerate_ports("NVIDIA", gpu_index):
         print(port.kind, port.identity, port.name)
 ```
 
@@ -51,7 +51,13 @@ C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\smoke_t
 I2C 地址 `0x30/0x50` 读取 EDID：
 
 ```powershell
-C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\hardware_aux_test.py NVIDIA
+C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\hardware_aux_test_nvidia.py
+```
+
+AMD 写测试使用独立入口：
+
+```powershell
+C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\hardware_aux_test_amd.py
 ```
 
 私有 ADL/NVAPI AUX 接口可能随显卡驱动变化。当前实现要求 Windows x64、64 位

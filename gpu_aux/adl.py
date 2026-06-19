@@ -126,7 +126,7 @@ class AmdAux:
 
     def __init__(self) -> None:
         if ctypes.sizeof(c_void_p) != 8:
-            raise AuxError("amd_aux requires 64-bit Python")
+            raise AuxError("gpu_aux requires 64-bit Python")
         self._lock = threading.RLock()
         self._closed = False
         self._crt = ctypes.CDLL("msvcrt")

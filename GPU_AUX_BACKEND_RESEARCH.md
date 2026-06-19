@@ -204,7 +204,7 @@ vendor ABI.
 
 ## Project dependency boundary
 
-The current `amd_aux` Python package directly loads the system AMD ADL DLL or
+The current `gpu_aux` Python package directly loads the system AMD ADL DLL or
 NVIDIA NVAPI DLL via `ctypes`. It does not load, import, redistribute, or call
 `OperateCardLib.dll`. The Intel information above is retained only as
 implementation research for a future direct Python backend.

@@ -62,8 +62,38 @@ class GpuPorts:
     ports: tuple[Port, ...]
 
 
+def enumerate_gpus(backend: str) -> list[Adapter]:
+    """Return physical GPUs for one backend without creating an ``AuxPort``."""
+
+    normalized_backend = _normalize_backend(backend)
+    aux = _acquire_aux(normalized_backend)
+    try:
+        return aux.adapters()
+    finally:
+        _release_aux(normalized_backend, aux)
+
+
+def enumerate_ports(backend: str, gpu_index: int = 0) -> list[Port]:
+    """Return connected DP/eDP ports on one GPU without creating an ``AuxPort``."""
+
+    if gpu_index < 0:
+        raise ValueError("gpu_index must not be negative")
+    normalized_backend = _normalize_backend(backend)
+    aux = _acquire_aux(normalized_backend)
+    try:
+        adapters = aux.adapters()
+        if gpu_index >= len(adapters):
+            raise AuxError(
+                f"GPU index {gpu_index} is unavailable for {normalized_backend}; "
+                f"found {len(adapters)} GPU(s)"
+            )
+        return aux.ports(adapters[gpu_index])
+    finally:
+        _release_aux(normalized_backend, aux)
+
+
 def enumerate_gpus_and_ports(backend: str) -> list[GpuPorts]:
-    """Return physical GPUs and their connected DP/eDP ports for one backend."""
+    """Return a combined GPU/port snapshot without creating an ``AuxPort``."""
 
     normalized_backend = _normalize_backend(backend)
     aux = _acquire_aux(normalized_backend)

@@ -3,10 +3,10 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "amd-aux"
+name = "gpu-aux"
 version = "1.2.0"
 description = "Direct Python bindings for AMD and NVIDIA DisplayPort AUX access"
 requires-python = ">=3.9"
 
 [tool.setuptools]
-packages = ["amd_aux"]
+packages = ["gpu_aux"]

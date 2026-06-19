@@ -4,7 +4,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from amd_aux import AuxError, AuxPort, enumerate_gpus_and_ports
+from gpu_aux import AuxError, AuxPort, enumerate_gpus_and_ports
+
+
+BACKEND = "AMD"
 
 
 def test_port(port: AuxPort) -> None:
@@ -34,16 +37,12 @@ def test_port(port: AuxPort) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: hardware_aux_test.py AMD|NVIDIA")
-        return 2
-    backend = sys.argv[1]
-    for gpu in enumerate_gpus_and_ports(backend):
+    for gpu in enumerate_gpus_and_ports(BACKEND):
         kind_indexes = defaultdict(int)
         for info in gpu.ports:
             kind_index = kind_indexes[info.kind]
             kind_indexes[info.kind] += 1
-            with AuxPort(info.kind, kind_index, gpu.gpu_index, backend=backend) as port:
+            with AuxPort(info.kind, kind_index, gpu.gpu_index, backend=BACKEND) as port:
                 test_port(port)
     return 0
 
