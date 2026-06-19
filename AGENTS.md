@@ -20,10 +20,12 @@ Intel 和 NVIDIA 当前仅有逆向研究记录，尚未形成可运行 backend�
 - Intel/NVIDIA 后续实现也应由 Python 直接加载其 GPU API，不以参考 DLL 作为运行依赖。
 - 公共 API 位于 `amd_aux` 包；底层 `ctypes` 结构和私有绑定集中在 backend 模块内。
 - ADL 是进程级全局接口，所有交易必须串行化，并保证初始化与销毁成对执行。
+- 多个公开 `AuxPort` 对象必须共享同一 ADL context，通过引用计数管理释放。
 
 ## 当前代码
 
-- `amd_aux/adl.py`：AMD ADL 结构体、函数绑定、GPU/端口枚举及 AUX 操作。
+- `amd_aux/adl.py`：AMD ADL 结构体、函数绑定、GPU/端口枚举及底层 AUX 操作。
+- `amd_aux/api.py`：`AuxPort` 端口对象、共享 ADL context 和模块级设备枚举。
 - `amd_aux/__init__.py`：稳定的包级公开接口。
 - `tests/smoke_test.py`：只读枚举和 DPCD 读取测试。
 - `tests/hardware_aux_test.py`：会写硬件的 DPCD/I2C-over-AUX 测试。
@@ -35,6 +37,8 @@ Intel 和 NVIDIA 当前仅有逆向研究记录，尚未形成可运行 backend�
   逻辑 adapter，必须按 PCI bus/device/function 去重。
 - `Port` 表示独立 DP/eDP 目标，身份由 ADL adapter index 和 display logical
   index 共同确定。
+- `AuxPort(kind, index, gpu_index)` 是公开操作对象；`index` 按同一 GPU 下的
+  同类型端口分别计数。
 - 不得把“第一个 connected display”复用于所有 Windows 显示路径。
 - HDMI 不是 AUX 目标，不应作为可读 DPCD 的 DP/eDP 端口返回。
 - 多个外接 DP 设备必须保留各自的 logical display index，不能按显示器名称去重。
