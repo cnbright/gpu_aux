@@ -1,12 +1,41 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gpu-aux"
 version = "1.2.0"
 description = "Direct Python bindings for AMD, NVIDIA, and Intel DisplayPort AUX access"
+readme = "README.md"
 requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "cnbright" },
+]
+keywords = [
+    "amd",
+    "aux",
+    "displayport",
+    "dpcd",
+    "edid",
+    "gpu",
+    "intel",
+    "nvidia",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: System :: Hardware",
+]
+
+[project.urls]
+Homepage = "https://github.com/cnbright/amd-aux"
+Repository = "https://github.com/cnbright/amd-aux"
+Issues = "https://github.com/cnbright/amd-aux/issues"
 
 [tool.setuptools]
 packages = ["gpu_aux"]
