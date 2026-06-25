@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gpu-aux"
-version = "1.2.0"
+version = "1.2.1"
 description = "Direct Python bindings for AMD, NVIDIA, and Intel DisplayPort AUX access"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -33,9 +33,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/cnbright/amd-aux"
-Repository = "https://github.com/cnbright/amd-aux"
-Issues = "https://github.com/cnbright/amd-aux/issues"
+Homepage = "https://github.com/cnbright/gpu_aux"
+Repository = "https://github.com/cnbright/gpu_aux"
+Issues = "https://github.com/cnbright/gpu_aux/issues"
 
 [tool.setuptools]
 packages = ["gpu_aux"]
