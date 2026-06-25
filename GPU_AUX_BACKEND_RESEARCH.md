@@ -28,11 +28,11 @@ Important exported RVAs in this sample:
 
 ## Confirmed backend map
 
-| Platform | Loaded library/API | DPCD read/write | I2C-over-AUX read/write |
-| --- | --- | --- | --- |
-| AMD | `atiadlxx.dll` / `atiadlxy.dll` | `ADL_Display_NativeAUXChannel_Access` | `ADL_Display_DDCBlockAccess_Get` |
-| Intel | Intel Graphics Control Library (`ControlLib.dll`) | `ctlAUXAccess`, or the `IDPControl2` read/write methods described below | `ctlAUXAccess`, or the same `IDPControl2` methods; not `ctlI2CAccess` in the observed call chain |
-| NVIDIA | `nvapi64.dll`, function obtained through `nvapi_QueryInterface` | `NvAPI_Disp_DpAuxChannelControl` | `NvAPI_Disp_DpAuxChannelControl` |
+| Platform | Loaded library/API | DPCD read/write | I2C-over-AUX read/write | Public reference |
+| --- | --- | --- | --- | --- |
+| AMD | `atiadlxx.dll` / `atiadlxy.dll` | `ADL_Display_NativeAUXChannel_Access` | `ADL_Display_DDCBlockAccess_Get` | [AMD Display Library](https://gpuopen-librariesandsdks.github.io/adl/); [`ADL_Display_DDCBlockAccess_Get`](https://gpuopen-librariesandsdks.github.io/adl/group__I2CDDCEDIDAPI.html) |
+| Intel | Intel Graphics Control Library (`ControlLib.dll`) | `ctlAUXAccess`, or the `IDPControl2` read/write methods described below | `ctlAUXAccess`, or the same `IDPControl2` methods; not `ctlI2CAccess` in the observed call chain | [IGCL Programming Guide](https://intel.github.io/drivers.gpu.control-library/prog.html); [Control API](https://intel.github.io/drivers.gpu.control-library/Control/api.html) |
+| NVIDIA | `nvapi64.dll`, function obtained through `nvapi_QueryInterface` | `NvAPI_Disp_DpAuxChannelControl` | `NvAPI_Disp_DpAuxChannelControl` | [NVAPI Reference Documentation](https://docs.nvidia.com/nvapi/documentation.html); this DP AUX entry remains undocumented/private |
 
 The generic `ReadDPCD`, `WriteDPCD`, `IICRead`, and `IICWrite` exports dispatch
 through a card-type byte. The relevant I2C jump-table entries confirm these
@@ -204,7 +204,8 @@ vendor ABI.
 
 ## Project dependency boundary
 
-The current `gpu_aux` Python package directly loads the system AMD ADL DLL or
-NVIDIA NVAPI DLL via `ctypes`. It does not load, import, redistribute, or call
-`OperateCardLib.dll`. The Intel information above is retained only as
-implementation research for a future direct Python backend.
+The current `gpu_aux` Python package directly loads the system AMD ADL DLL,
+NVIDIA NVAPI DLL, or Intel IGCL `ControlLib.dll` via `ctypes`. It does not
+load, import, redistribute, or call `OperateCardLib.dll`. The direct Intel
+backend uses the public IGCL `ctlAUXAccess` path; the recovered `IDPControl2`
+notes above remain research-only and must not be treated as a stable ABI.

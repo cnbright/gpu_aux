@@ -1,17 +1,28 @@
 # gpu_aux
 
 Windows x64 纯 Python GPU AUX 包。Python 使用 `ctypes` 直接加载系统 AMD
-`atiadlxx.dll` 或 NVIDIA `nvapi64.dll`，不包含或依赖 C/C++ 中间 DLL，也不依赖
-`OperateCardLib.dll`。
+`atiadlxx.dll`、NVIDIA `nvapi64.dll` 或 Intel IGCL `ControlLib.dll`，不包含或依赖
+C/C++ 中间 DLL，也不依赖 `OperateCardLib.dll`。
 
 支持：
 
 - 按 PCI 地址合并 ADL 重复项，枚举物理 AMD GPU 和每个已连接 DP/eDP 端口
 - 枚举 NVIDIA 物理 GPU 和已连接 DP 端口
+- 枚举 Intel IGCL GPU 和已连接 DP/eDP 端口
 - AMD DPCD 读写：`ADL_Display_NativeAUXChannel_Access`
 - AMD I2C-over-AUX 读写：`ADL_Display_DDCBlockAccess_Get`
 - NVIDIA DPCD/I2C-over-AUX 读写：`NvAPI_Disp_DpAuxChannelControl`
+- Intel DPCD/I2C-over-AUX 读写：`ctlAUXAccess`
 - 以 backend、GPU index 和显示目标 ID 区分多个 DP/eDP 端口
+
+公开 GPU API 参考：
+
+- AMD ADL SDK：[AMD Display Library](https://gpuopen-librariesandsdks.github.io/adl/)；
+  DDC/I2C 入口见 [I2C, DDC and EDID APIs](https://gpuopen-librariesandsdks.github.io/adl/group__I2CDDCEDIDAPI.html)。
+- Intel IGCL：[Programming Guide](https://intel.github.io/drivers.gpu.control-library/prog.html)
+  和 [Control API](https://intel.github.io/drivers.gpu.control-library/Control/api.html)。
+- NVIDIA NVAPI：[NVAPI Reference Documentation](https://docs.nvidia.com/nvapi/documentation.html)。
+  本项目使用的 DP AUX 入口不在公开 `nvapi.h` 中声明，按私有接口处理。
 
 直接构造一个端口对象：
 
@@ -45,6 +56,7 @@ for gpu_index, gpu in enumerate(enumerate_gpus("NVIDIA")):
 
 ```powershell
 C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\smoke_test.py NVIDIA
+C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\smoke_test.py INTEL
 ```
 
 读写硬件测试会向 DPCD `0x00102` 写入 `C0`、回读并恢复原值，同时通过
@@ -60,5 +72,12 @@ AMD 写测试使用独立入口：
 C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\hardware_aux_test_amd.py
 ```
 
-私有 ADL/NVAPI AUX 接口可能随显卡驱动变化。当前实现要求 Windows x64、64 位
-Python、AMD 或 NVIDIA DP/eDP 链路；包内会串行化 AUX 事务。
+Intel 写测试也使用独立入口：
+
+```powershell
+C:\Users\admin\AppData\Local\Programs\Python\Python39\python.exe .\tests\hardware_aux_test_intel.py
+```
+
+私有 ADL/NVAPI AUX 接口可能随显卡驱动变化；Intel 路径使用公开 IGCL
+`ctlAUXAccess`。当前实现要求 Windows x64、64 位 Python、AMD/NVIDIA/Intel
+DP/eDP 链路；包内会串行化 AUX 事务。

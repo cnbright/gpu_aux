@@ -6,6 +6,7 @@ import threading
 from dataclasses import dataclass
 
 from .adl import Adapter, AmdAux, AuxError, Port
+from .intel import IntelAux
 from .nvapi import NvidiaAux
 
 
@@ -15,11 +16,11 @@ _contexts = {}
 
 def _normalize_backend(backend: str) -> str:
     if not isinstance(backend, str):
-        raise TypeError("backend must be 'AMD' or 'NVIDIA'")
+        raise TypeError("backend must be 'AMD', 'NVIDIA', or 'INTEL'")
     normalized = backend.strip().upper()
-    if normalized in {"AMD", "NVIDIA"}:
+    if normalized in {"AMD", "NVIDIA", "INTEL"}:
         return normalized
-    raise ValueError("backend must be 'AMD' or 'NVIDIA'")
+    raise ValueError("backend must be 'AMD', 'NVIDIA', or 'INTEL'")
 
 
 def _create_aux(backend: str):
@@ -27,7 +28,9 @@ def _create_aux(backend: str):
         return AmdAux()
     if backend == "NVIDIA":
         return NvidiaAux()
-    raise ValueError("backend must be 'AMD' or 'NVIDIA'")
+    if backend == "INTEL":
+        return IntelAux()
+    raise ValueError("backend must be 'AMD', 'NVIDIA', or 'INTEL'")
 
 
 def _acquire_aux(backend: str):

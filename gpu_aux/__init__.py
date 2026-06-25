@@ -2,6 +2,7 @@
 
 from .adl import Adapter, AmdAux, AuxError, Port
 from .api import AuxPort, GpuPorts, enumerate_gpus, enumerate_gpus_and_ports, enumerate_ports
+from .intel import IntelAux
 from .nvapi import NvidiaAux
 
 __all__ = [
@@ -10,6 +11,7 @@ __all__ = [
     "AuxError",
     "AuxPort",
     "GpuPorts",
+    "IntelAux",
     "NvidiaAux",
     "Port",
     "enumerate_gpus",

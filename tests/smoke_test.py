@@ -9,10 +9,14 @@ from gpu_aux import AuxError, AuxPort, enumerate_gpus, enumerate_ports
 
 def main() -> int:
     if len(sys.argv) != 2:
-        print("usage: smoke_test.py AMD|NVIDIA")
+        print("usage: smoke_test.py AMD|NVIDIA|INTEL")
         return 2
     backend = sys.argv[1]
-    gpus = enumerate_gpus(backend)
+    try:
+        gpus = enumerate_gpus(backend)
+    except AuxError as error:
+        print(f"{backend.upper()} GPU enumeration failed: {error}")
+        return 1
     print(f"{backend.upper()} GPUs: {len(gpus)}")
 
     for gpu_index, adapter in enumerate(gpus):
