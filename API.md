@@ -57,7 +57,8 @@ with AuxPort("DP", index=0, gpu_index=0, backend="NVIDIA") as port:
 from gpu_aux import AuxPort
 
 with AuxPort("DP", index=0, gpu_index=0, backend="NVIDIA") as port:
-    edid = port.i2c_read(0x50, 0x00, 128)
+    port.i2c_write(0xA0, b"\x00")
+    edid = port.i2c_read(0xA0, 128)
     print(edid[:8].hex(" ").upper())
     print("checksum:", sum(edid) & 0xFF)
 ```
@@ -185,27 +186,45 @@ with AuxPort("DP", 0, 0, backend="AMD") as port:
 
 ## I2C-over-AUX 方法
 
-公共 I2C 参数使用 7-bit device address，例如 EDID 数据地址 `0x50`、EDID segment
-pointer 地址 `0x30`。为兼容部分调用方式，传入 8-bit address 时会归一化为 7-bit。
+公共 I2C 参数使用 raw 8-bit write address，例如 EDID 数据地址 `0xA0`、EDID
+segment pointer 地址 `0x60`。写入时不会自动插入 register/offset 字节，传入的
+`data` 就是 I2C-over-AUX payload。
 
-### `i2c_read(device: int, register: int, length: int) -> bytes`
+### `i2c_read(device: int, length: int) -> bytes`
 
-从 I2C 设备读取寄存器数据。`device` 必须可放入一个字节，`register` 范围为
-`0x00..0xFF`，`length` 必须大于 `0`。
+从 I2C 设备当前内部指针读取数据。`device` 必须是偶数 write address byte，
+范围为 `0x00..0xFE`，`length` 必须大于 `0`。如果设备需要先设置 offset，
+请先调用 `i2c_write(device, data)` 写入 offset 字节。
 
 ```python
 with AuxPort("DP", 0, 0, backend="INTEL") as port:
-    edid = port.i2c_read(0x50, 0x00, 128)
+    port.i2c_write(0xA0, b"\x00")
+    edid = port.i2c_read(0xA0, 128)
 ```
 
-### `i2c_write(device: int, register: int, data: bytes) -> None`
+### `i2c_write(device: int, data: bytes) -> None`
 
-向 I2C 设备写入寄存器数据。`data` 不能为空。对 EDID segment pointer `0x30`
-的写入只允许 1 字节。
+向 I2C 设备写入 raw payload。`device` 必须是偶数 write address byte，`data`
+不能为空。比如对 write address `0x4E` 只写入 `0x23`：
 
 ```python
 with AuxPort("DP", 0, 0, backend="NVIDIA") as port:
-    port.i2c_write(0x30, 0x00, bytes([0x00]))
+    port.i2c_write(0x4E, b"\x23")
+```
+
+一次写入多个字节时，把完整 payload 放进同一个 `bytes`：
+
+```python
+with AuxPort("DP", 0, 0, backend="AMD") as port:
+    port.i2c_write(0x4E, bytes([0x23, 0x45, 0x67]))
+```
+
+如果目标设备协议要求第一个字节是内部 offset/register，也由调用方显式放入
+payload：
+
+```python
+with AuxPort("DP", 0, 0, backend="AMD") as port:
+    port.i2c_write(0x4E, bytes([0x10, 0x23, 0x45, 0x67]))
 ```
 
 ## 数据类

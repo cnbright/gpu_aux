@@ -211,13 +211,13 @@ class AuxPort:
         aux, port = self._require_open()
         aux.write_dpcd(port, address, data)
 
-    def i2c_read(self, device: int, register: int, length: int) -> bytes:
+    def i2c_read(self, device: int, length: int) -> bytes:
         aux, port = self._require_open()
-        return aux.i2c_read(port, device, register, length)
+        return aux.i2c_read(port, device, length)
 
-    def i2c_write(self, device: int, register: int, data: bytes) -> None:
+    def i2c_write(self, device: int, data: bytes) -> None:
         aux, port = self._require_open()
-        aux.i2c_write(port, device, register, data)
+        aux.i2c_write(port, device, data)
 
     def close(self) -> None:
         if self._aux is not None:

@@ -47,7 +47,8 @@ from gpu_aux import AuxPort
 
 with AuxPort("DP", index=0, gpu_index=0, backend="NVIDIA") as dp:
     print(dp.read_dpcd(0x00000, 16).hex(" "))
-    edid = dp.i2c_read(0x50, 0, 128)
+    dp.i2c_write(0xA0, b"\x00")
+    edid = dp.i2c_read(0xA0, 128)
 ```
 
 GPU 与端口枚举是两个独立的模块级函数，不需要先创建 `AuxPort`：
@@ -75,7 +76,7 @@ python .\tests\smoke_test.py INTEL
 ```
 
 读写硬件测试会向 DPCD `0x00102` 写入 `C0`、回读并恢复原值，同时通过
-I2C 地址 `0x30/0x50` 读取 EDID：
+I2C write address `0x60/0xA0` 读取 EDID：
 
 ```powershell
 python .\tests\hardware_aux_test_nvidia.py

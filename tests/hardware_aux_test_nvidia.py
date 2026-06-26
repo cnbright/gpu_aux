@@ -22,8 +22,9 @@ def test_port(port: AuxPort) -> None:
         port.write_dpcd(0x00102, b"\xC0")
         print(f"DPCD[0x00102] after  = {port.read_dpcd(0x00102, 1).hex().upper()}")
 
-        port.i2c_write(0x30, 0, b"\x00")
-        edid = port.i2c_read(0x50, 0, 128)
+        port.i2c_write(0x60, b"\x00")
+        port.i2c_write(0xA0, b"\x00")
+        edid = port.i2c_read(0xA0, 128)
         header = bytes.fromhex("00 FF FF FF FF FF FF 00")
         print(f"EDID header_ok={edid[:8] == header}, checksum_ok={sum(edid) % 256 == 0}")
         print(f"EDID={edid.hex(' ').upper()}")

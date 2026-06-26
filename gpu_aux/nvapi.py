@@ -273,22 +273,17 @@ class NvidiaAux:
                 self._aux(port, 0, address + offset, chunk, len(chunk) - 1)
 
     @staticmethod
-    def _dev7(address: int) -> int:
-        if not 0 <= address <= 0xFF:
-            raise ValueError("I2C address must fit in one byte")
-        return address >> 1 if address >= 0x80 else address & 0x7F
+    def _i2c_write_address(address: int) -> int:
+        if not 0 <= address <= 0xFE or address & 1:
+            raise ValueError("I2C write address must be an even byte in range 0x00..0xFE")
+        return address
 
-    @classmethod
-    def _i2c_write_address(cls, address: int) -> int:
-        return cls._dev7(address) << 1
-
-    def i2c_read(self, port: Port, device: int, register: int, length: int) -> bytes:
-        if length <= 0 or not 0 <= register <= 0xFF:
-            raise ValueError("length must be positive and register must fit in one byte")
+    def i2c_read(self, port: Port, device: int, length: int) -> bytes:
+        if length <= 0:
+            raise ValueError("length must be positive")
         device_address = self._i2c_write_address(device)
         with self._lock:
             self._ensure_open()
-            self._aux(port, 5, device_address, bytes((register,)), 0)
             output = bytearray()
             while len(output) < length:
                 size = min(NV_AUX_CHUNK_SIZE, length - len(output))
@@ -297,20 +292,13 @@ class NvidiaAux:
                 output += self._aux(port, command, device_address, b"", size - 1)[:size]
             return bytes(output)
 
-    def i2c_write(self, port: Port, device: int, register: int, data: bytes) -> None:
+    def i2c_write(self, port: Port, device: int, data: bytes) -> None:
         data = bytes(data)
-        if not data or not 0 <= register <= 0xFF:
-            raise ValueError("data must not be empty and register must fit in one byte")
-        dev7 = self._dev7(device)
-        device_address = dev7 << 1
+        if not data:
+            raise ValueError("data must not be empty")
+        device_address = self._i2c_write_address(device)
         with self._lock:
             self._ensure_open()
-            if dev7 == 0x30:
-                if len(data) != 1:
-                    raise ValueError("EDID segment-pointer writes require exactly one byte")
-                self._aux(port, 2, device_address, data, len(data))
-                return
             for offset in range(0, len(data), NV_AUX_CHUNK_SIZE):
                 chunk = data[offset : offset + NV_AUX_CHUNK_SIZE]
-                payload = bytes(((register + offset) & 0xFF,)) + chunk
-                self._aux(port, 2, device_address, payload, len(chunk))
+                self._aux(port, 2, device_address, chunk, len(chunk))

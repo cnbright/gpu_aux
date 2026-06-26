@@ -310,10 +310,10 @@ class AmdAux:
                 self._native_aux(port, 1, address + offset, data[offset : offset + AUX_CHUNK_SIZE])
 
     @staticmethod
-    def _dev7(address: int) -> int:
-        if not 0 <= address <= 0xFF:
-            raise ValueError("I2C address must fit in one byte")
-        return address >> 1 if address >= 0x80 else address & 0x7F
+    def _i2c_write_address(address: int) -> int:
+        if not 0 <= address <= 0xFE or address & 1:
+            raise ValueError("I2C write address must be an even byte in range 0x00..0xFE")
+        return address
 
     def _ddc(self, port: Port, send: bytes, receive_length: int) -> bytes:
         self._validate_port(port)
@@ -341,30 +341,22 @@ class AmdAux:
             raise AuxError(f"I2C-over-AUX returned {receive_size.value} of {receive_length} bytes")
         return bytes(receive_buffer) if receive_buffer is not None else b""
 
-    def i2c_read(self, port: Port, device: int, register: int, length: int) -> bytes:
-        if length <= 0 or not 0 <= register <= 0xFF:
-            raise ValueError("length must be positive and register must fit in one byte")
+    def i2c_read(self, port: Port, device: int, length: int) -> bytes:
+        if length <= 0:
+            raise ValueError("length must be positive")
+        write_address = self._i2c_write_address(device)
         with self._lock:
             self._ensure_open()
-            output = bytearray()
-            read_address = (self._dev7(device) << 1) | 1
-            while len(output) < length:
-                size = min(AUX_CHUNK_SIZE, length - len(output))
-                output += self._ddc(port, bytes((read_address, (register + len(output)) & 0xFF)), size)
-            return bytes(output)
+            read_address = write_address | 1
+            return self._ddc(port, bytes((read_address,)), length)
 
-    def i2c_write(self, port: Port, device: int, register: int, data: bytes) -> None:
+    def i2c_write(self, port: Port, device: int, data: bytes) -> None:
         data = bytes(data)
-        if not data or not 0 <= register <= 0xFF:
-            raise ValueError("data must not be empty and register must fit in one byte")
+        if not data:
+            raise ValueError("data must not be empty")
+        write_address = self._i2c_write_address(device)
         with self._lock:
             self._ensure_open()
-            write_address = self._dev7(device) << 1
-            if self._dev7(device) == 0x30:
-                if len(data) != 1:
-                    raise ValueError("EDID segment-pointer writes require exactly one byte")
-                self._ddc(port, bytes((write_address, data[0])), 0)
-                return
             for offset in range(0, len(data), AUX_CHUNK_SIZE):
                 chunk = data[offset : offset + AUX_CHUNK_SIZE]
-                self._ddc(port, bytes((write_address, (register + offset) & 0xFF)) + chunk, 0)
+                self._ddc(port, bytes((write_address,)) + chunk, 0)
