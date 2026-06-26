@@ -119,7 +119,8 @@ for item in enumerate_gpus_and_ports("NVIDIA"):
 AuxPort(kind: str, index: int = 0, gpu_index: int = 0, *, backend: str)
 ```
 
-打开一个 DP/eDP AUX 端点。推荐用 `with` 管理生命周期：
+打开一个 DP/eDP AUX 端点。使用前应先调用 `enumerate_gpus()` 和 `enumerate_ports()`，
+根据枚举结果确认目标显示器对应的参数；推荐用 `with` 管理生命周期：
 
 ```python
 from gpu_aux import AuxPort
@@ -133,9 +134,13 @@ with AuxPort("eDP", index=0, gpu_index=0, backend="AMD") as port:
 | 参数 | 说明 |
 | --- | --- |
 | `kind` | 端口类型，支持 `"DP"` 或 `"eDP"`，大小写不敏感 |
-| `index` | 同一 GPU、同一 `kind` 下的端口序号，从 `0` 开始 |
-| `gpu_index` | 同一 backend 下的 GPU 序号，从 `0` 开始 |
+| `index` | 同一 GPU、同一 `kind` 下的端口枚举序号，从 `0` 开始 |
+| `gpu_index` | `enumerate_gpus(backend)` 返回列表中的 GPU 序号，从 `0` 开始 |
 | `backend` | 必填关键字参数，支持 `"AMD"`、`"NVIDIA"`、`"INTEL"` |
+
+`index` 不是 Windows 显示设置里的显示器编号，也不是 `Port.identity` 里的底层显示 ID。
+`Port.identity` 用于日志和问题定位；创建 `AuxPort` 时应使用枚举结果中的 `gpu_index`、
+`port.kind` 和按同类端口计数得到的 `index`。
 
 例如，同一 NVIDIA GPU 上第二个外接 DP 端口：
 

@@ -40,29 +40,32 @@ python -m pip install .
 - NVIDIA NVAPI：[NVAPI Reference Documentation](https://docs.nvidia.com/nvapi/documentation.html)。
   本项目使用的 DP AUX 入口不在公开 `nvapi.h` 中声明，属于逆向确认的私有接口。
 
-直接构造一个端口对象：
-
-```python
-from gpu_aux import AuxPort
-
-with AuxPort("DP", index=0, gpu_index=0, backend="NVIDIA") as dp:
-    print(dp.read_dpcd(0x00000, 16).hex(" "))
-    dp.i2c_write(0xA0, b"\x00")
-    edid = dp.i2c_read(0xA0, 128)
-```
-
-GPU 与端口枚举是两个独立的模块级函数，不需要先创建 `AuxPort`：
+使用前应先枚举 GPU 与端口，确认要访问的显示器对应的 `backend`、`gpu_index`、`kind`
+和端口 `index`。GPU 与端口枚举是两个独立的模块级函数，不需要先创建 `AuxPort`：
 
 ```python
 from gpu_aux import enumerate_gpus, enumerate_ports
 
 for gpu_index, gpu in enumerate(enumerate_gpus("NVIDIA")):
     print(gpu_index, gpu.backend, gpu.name)
-    for port in enumerate_ports("NVIDIA", gpu_index):
-        print(port.kind, port.identity, port.name)
+    for port_index, port in enumerate(enumerate_ports("NVIDIA", gpu_index)):
+        print(port_index, port.kind, port.identity, port.name)
 ```
 
-`index` 是同一 GPU、同一端口类型内的序号，例如第二个外接 DP 使用`AuxPort("DP", index=1, gpu_index=0, backend="NVIDIA")`。
+`gpu_index` 来自 `enumerate_gpus()` 的枚举序号；`index` 来自同一 GPU、同一端口类型下的
+端口枚举序号，不要直接使用 Windows 显示设置编号，也不要把 `identity` 中的底层显示 ID
+当作 `index`。例如第二个外接 DP 使用 `AuxPort("DP", index=1, gpu_index=0, backend="NVIDIA")`。
+
+确认参数后再构造端口对象：
+
+```python
+from gpu_aux import AuxPort
+
+with AuxPort("DP", index=1, gpu_index=0, backend="NVIDIA") as dp:
+    print(dp.read_dpcd(0x00000, 16).hex(" "))
+    dp.i2c_write(0xA0, b"\x00")
+    edid = dp.i2c_read(0xA0, 128)
+```
 
 多个同后端 `AuxPort`对象共享同一 context，并在最后一个对象关闭时释放。后端必须由调用方显式指定，不会自动选择。
 
