@@ -20,6 +20,11 @@ python -m pip install gpu-aux
 python -m pip install .
 ```
 
+## 运行权限
+
+AMD backend 通常可在普通用户权限下运行；NVIDIA 和 Intel backend 访问底层
+NVAPI/IGCL AUX 接口时需要以管理员权限启动 Python、PowerShell、CMD 或调用本库的上层程序。
+
 支持：
 
 - 按 PCI 地址合并 ADL 重复项，枚举物理 AMD GPU 和每个已连接 DP/eDP 端口
