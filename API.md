@@ -195,6 +195,12 @@ with AuxPort("DP", 0, 0, backend="AMD") as port:
 segment pointer 地址 `0x60`。写入时不会自动插入 register/offset 字节，传入的
 `data` 就是 I2C-over-AUX payload。
 
+上层 API 对所有 backend 使用同一套长度语义：`length` 表示真实读取字节数，
+`data` 表示真实写入 payload。NVIDIA 的私有 `NvAPI_Disp_DpAuxChannelControl`
+请求结构里，AUX `length_field` 按 `N - 1` 编码；这个 backend 差异已经在
+`gpu_aux.nvapi` 内部转换。调用 `AuxPort.i2c_write(0x8E, b"\x05")` 时，
+无论 AMD、NVIDIA 还是 Intel，语义都只是向设备 `0x8E` 写出一个字节 `05`。
+
 ### `i2c_read(device: int, length: int) -> bytes`
 
 从 I2C 设备当前内部指针读取数据。`device` 必须是偶数 write address byte，

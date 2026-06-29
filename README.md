@@ -40,6 +40,12 @@ python -m pip install .
 - NVIDIA NVAPI：[NVAPI Reference Documentation](https://docs.nvidia.com/nvapi/documentation.html)。
   本项目使用的 DP AUX 入口不在公开 `nvapi.h` 中声明，属于逆向确认的私有接口。
 
+公共 `AuxPort` API 对 AMD、NVIDIA 和 Intel 保持统一语义：`read_dpcd()` /
+`i2c_read()` 的 `length` 是实际要读取的字节数，`write_dpcd()` /
+`i2c_write()` 的 `data` 是实际要写出的完整 payload。NVIDIA 私有 NVAPI AUX
+请求内部的 `length_field` 使用 `N - 1` 编码，这个差异由 `gpu_aux.nvapi`
+backend 内部处理；上层调用方不要额外增减长度，也不要为 NVIDIA 拼接填充字节。
+
 使用前应先枚举 GPU 与端口，确认要访问的显示器对应的 `backend`、`gpu_index`、`kind`
 和端口 `index`。GPU 与端口枚举是两个独立的模块级函数，不需要先创建 `AuxPort`：
 

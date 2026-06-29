@@ -301,4 +301,4 @@ class NvidiaAux:
             self._ensure_open()
             for offset in range(0, len(data), NV_AUX_CHUNK_SIZE):
                 chunk = data[offset : offset + NV_AUX_CHUNK_SIZE]
-                self._aux(port, 2, device_address, chunk, len(chunk))
+                self._aux(port, 2, device_address, chunk, len(chunk) - 1)

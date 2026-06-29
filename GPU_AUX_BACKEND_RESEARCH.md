@@ -156,7 +156,7 @@ typedef struct NvDpAuxRequest_Recovered {
     uint32_t command;       // +0x08
     uint32_t address;       // +0x0C: DPCD address or 8-bit I2C write address
     uint8_t  data[16];      // +0x10
-    uint32_t length_field;  // +0x20, usually count - 1 for reads/DPCD
+    uint32_t length_field;  // +0x20, count - 1 for current DPCD/I2C operations
     uint32_t result;        // +0x24: 0 success, 1 defer, 2 not found, 0xFF timeout
     uint8_t  reserved[0x40];
 } NvDpAuxRequest_Recovered;
@@ -180,6 +180,14 @@ chunk. I2C writes use command `2`, placing the register offset before payload
 in `data`. On the RTX 4070 SUPER validation system, the I2C `address` field
 must be the 8-bit write address (`dev7 << 1`); using the 7-bit address returns
 NVAPI error `-1`.
+
+The recovered `length_field` is not a byte count. It is encoded as `N - 1` for
+the currently implemented NVIDIA transactions: native DPCD read/write and
+I2C-over-AUX read/write. For example, a one-byte I2C write must pass
+`length_field = 0`; passing `1` can request two bytes and may send an extra
+zero from the initialized data buffer. The public `AuxPort` API deliberately
+hides this backend difference: callers pass real byte counts and real payloads,
+while `gpu_aux.nvapi` converts them to the private NVAPI representation.
 
 The error/result handling is also explicit in the disassembly:
 
